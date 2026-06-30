@@ -1,15 +1,15 @@
 # Peer Review Assistant
 
-A skill that helps you write a stronger peer review, faster. Upload a manuscript (or paste
-an abstract), and it runs targeted Consensus searches to check whether the background claims
+A skill for pre-submission mock peer review on your manuscript in prep, using [Consensus](https://consensus.app/).
+Upload a manuscript and it runs targeted Consensus searches to check whether the background claims
 hold up, identify papers the authors should have cited, and flag whether the methods reflect
 current practice.
 
-The output is a structured review report as a Word document (.docx) — ready to edit, annotate,
-and submit.
+The output is a structured review report as a Word document (.docx).
 
-This is not a replacement for domain expertise. It's what a generous colleague would do if
-they had time to cross-check the literature for you before you sat down to write.
+Requires a [Consensus](https://consensus.app/) account, and the [Consensus MCP](https://consensus.app/home/mcp/) connector activated in Claude.
+
+Works best in [Claude Cowork](https://www.anthropic.com/product/claude-cowork).
 
 ## Installation
 
