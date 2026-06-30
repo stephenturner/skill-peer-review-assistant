@@ -31,6 +31,23 @@ Output: a Word document (.docx) the reviewer can edit, annotate, and submit or s
 
 ---
 
+## Prerequisites
+
+This skill drives the **Consensus MCP connector** (https://consensus.app/home/mcp/), which
+must be activated in Claude. Every search in Phase 2 is a call to the Consensus search tool
+(parameters: `query`, optional `year_min` / `year_max`); discover the exact tool name from
+the available tools at runtime. If no Consensus tool is available, **stop and tell the user
+to activate the Consensus MCP** — do not substitute model knowledge for literature search,
+which would violate the Data Integrity Principles below.
+
+**Environment:** document generation (Phase 4) targets Claude Cowork / claude.ai paths
+(`/mnt/skills/public/docx/SKILL.md`, the `/mnt/user-data/outputs/` directory, and
+`present_files`). In another environment, generate the .docx with whatever docx tooling is
+available and save it to the working directory, telling the user the path — the review
+content does not depend on the cloud environment, only the delivery step does.
+
+---
+
 ## Data Integrity Principles
 
 Everything in the review report must come from what the manuscript contains or what Consensus
@@ -80,9 +97,17 @@ Read the uploaded file or pasted text and extract:
   metrics or endpoints
 - **Main findings**: what the paper reports as its primary results
 - **Conclusions**: what the authors claim their findings imply
+- **Reference list (works already cited)**: extract the manuscript's bibliography into a
+  normalized set — first-author surname + year, plus title where available. This is the
+  GROUND TRUTH for the missing-citations check: a paper can be flagged "missing" in Phase 3
+  ONLY if it is genuinely absent from this set. Without it, "missing citation" is a guess —
+  the exact fabrication the Data Integrity Principles forbid. If the file has no parseable
+  reference list, say so and downgrade the missing-citations section to "cannot assess — no
+  reference list available" rather than flagging citations against an unknown baseline.
 
 If only an abstract is provided, extract what you can and note in the report that the review
-is abstract-only and certain dimensions (especially methods) will have limited coverage.
+is abstract-only and certain dimensions (especially methods, and missing-citations without a
+reference list) will have limited coverage.
 
 Flag any claims in the abstract or introduction that are stated without a citation — these are
 candidates for the claims-verification searches.
@@ -178,6 +203,31 @@ to the field.
 
 ---
 
+### Phase 3.5: Peer-Review the Review (Self-Check)
+
+A peer-review skill that doesn't review its own output isn't holding itself to the standard
+it holds the manuscript to. Before generating the document, verify each item below and fix
+any that fail — this is the mechanical enforcement of the Data Integrity Principles:
+
+1. **Every missing-citation candidate is genuinely absent** from the Phase 1 reference list
+   (re-check first-author + year / title). Drop any that are actually cited.
+2. **Every concern is grounded.** Each major and minor concern either cites a specific
+   Consensus result (with its URL) or quotes/points to a specific passage in the manuscript.
+   Drop or downgrade any concern that rests on neither — an ungrounded concern is exactly the
+   "invented concern" the Notes forbid.
+3. **Counts are within bounds.** 1-4 major, 2-6 minor. More than that and you are likely
+   padding — merge or cut to the concerns that matter. If the recommendation (Reject, Major
+   revision) is harsher than the listed concerns justify, reconcile them before writing.
+4. **No citation came from model knowledge.** Every cited paper traces to a row in the Audit
+   Log (a Consensus result from this session). Anything else is either labeled
+   `[Not from Consensus — model knowledge]` and excluded from counts, or removed.
+
+If a check changes the review (a dropped citation, a downgraded concern), update the counts
+and the recommendation accordingly, and note in the Audit Log that the self-check removed
+something.
+
+---
+
 ### Phase 4: Generate the .docx Report
 
 Read the DOCX skill at `/mnt/skills/public/docx/SKILL.md` before generating. Write the
@@ -189,6 +239,10 @@ npm install -g docx
 ```
 
 Save to `/mnt/user-data/outputs/peer-review-[short-title].docx`.
+
+The canonical section structure and styling live in `references/report-template.md` — follow
+it exactly. The structure is restated below for convenience; if the two ever diverge, the
+template file is authoritative.
 
 #### Report structure
 
@@ -217,6 +271,13 @@ Papers found in Consensus searches that are absent from the manuscript's referen
 are directly relevant to the paper's claims, methods, or conclusions. For each:
 - Full citation with hyperlink to Consensus URL
 - One sentence on why this paper is relevant and what the authors should engage with it on
+
+**Before listing any paper here, confirm it is genuinely absent** from the reference list
+extracted in Phase 1 (match on first-author + year, or on title). A paper the manuscript
+already cites is not "missing" — flagging an already-cited work is the single most common and
+most embarrassing error this section makes. If Phase 1 could not extract a reference list,
+do not enumerate individual missing citations; instead state that citation completeness could
+not be assessed without a parseable bibliography.
 
 Only flag papers that are genuinely relevant. Do not pad this section. If no important papers
 were missed, say so — that is useful information for the editor.
